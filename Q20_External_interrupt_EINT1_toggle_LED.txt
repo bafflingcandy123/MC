@@ -1,0 +1,109 @@
+; LPC2148 - LAB QUESTION 20: External_interrupt_EINT1_toggle_LED
+; Vector table is at flash address 0, with LPC2148 checksum at 0x14.
+; No vendor startup.s should be included in the same Keil target.
+        AREA    RESET, CODE, READONLY
+        ARM
+        ENTRY
+Vectors
+        B       Reset_Entry
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        DCD     0x99FFFFE2
+        B       IRQ_Entry
+        B       Default_Hang
+Reset_Entry
+        B       Main
+IRQ_Entry
+        B       IRQ_ISR
+Default_Hang
+        B       Default_Hang
+Main
+        ; Input P0.14 = EINT1 falling-edge via external pull-up.
+        ; Output P0.16 = active-low LED.
+        ; ARM7 IRQ and SVC stacks explicitly initialized.
+        MRS     R0, CPSR
+        BIC     R1, R0, #0x1F
+        ORR     R1, R1, #0x12     ; IRQ mode, IRQ still disabled
+        MSR     CPSR_c, R1
+        LDR     SP, =0x40007F00  ; IRQ mode stack
+        MSR     CPSR_c, R0       ; return to reset SVC mode
+        LDR     SP, =0x40007FFC  ; SVC mode stack
+
+        LDR     R0, =0xE002C004 ; PINSEL1
+        LDR     R1, [R0]
+        BIC     R1, R1, #3     ; P0.16 GPIO
+        STR     R1, [R0]
+        LDR     R4, =0x00010000
+        LDR     R0, =0xE0028004
+        STR     R4, [R0]       ; LED off
+        LDR     R0, =0xE0028008
+        LDR     R1, [R0]
+        ORR     R1, R1, R4
+        STR     R1, [R0]       ; output P0.16
+
+        LDR     R0, =0xE002C000 ; PINSEL0
+        LDR     R1, [R0]
+        LDR     R2, =0x30000000
+        BIC     R1, R1, R2
+        ORR     R1, R1, #0x20000000 ; P0.14 = EINT1 (10b)
+        STR     R1, [R0]
+
+        LDR     R0, =0xE01FC148 ; EXTMODE
+        LDR     R1, [R0]
+        ORR     R1, R1, #2     ; EINT1 edge-sensitive
+        STR     R1, [R0]
+        LDR     R0, =0xE01FC14C ; EXTPOLAR
+        LDR     R1, [R0]
+        BIC     R1, R1, #2     ; falling edge
+        STR     R1, [R0]
+        LDR     R0, =0xE01FC140 ; EXTINT
+        MOV     R1, #2
+        STR     R1, [R0]       ; clear pending EINT1
+
+        LDR     R0, =0xFFFFF00C ; VICIntSelect
+        LDR     R1, [R0]
+        LDR     R2, =0x00008000
+        BIC     R1, R1, R2    ; channel 15 as IRQ, not FIQ
+        STR     R1, [R0]
+        LDR     R0, =0xFFFFF100 ; VICVectAddr0
+        LDR     R1, =IRQ_ISR
+        STR     R1, [R0]
+        LDR     R0, =0xFFFFF200 ; VICVectCntl0
+        MOV     R1, #0x2F     ; slot enabled, source 15
+        STR     R1, [R0]
+        LDR     R0, =0xFFFFF010 ; VICIntEnable
+        STR     R2, [R0]
+        MRS     R0, CPSR
+        BIC     R0, R0, #0x80 ; enable CPU IRQ globally
+        MSR     CPSR_c, R0
+Main_Loop
+        B       Main_Loop
+
+IRQ_ISR
+        STMFD   SP!, {R0-R3, LR}
+        LDR     R0, =0xE0028000 ; IO0PIN
+        LDR     R1, [R0]
+        TST     R1, #0x10000
+        BEQ     Turn_LED_Off
+        LDR     R0, =0xE002800C ; IO0CLR = LED on
+        LDR     R1, =0x10000
+        STR     R1, [R0]
+        B       IRQ_Done
+Turn_LED_Off
+        LDR     R0, =0xE0028004 ; IO0SET = LED off
+        LDR     R1, =0x10000
+        STR     R1, [R0]
+IRQ_Done
+        LDR     R0, =0xE01FC140 ; EXTINT
+        MOV     R1, #2
+        STR     R1, [R0]       ; acknowledge EINT1
+        LDR     R0, =0xFFFFF030 ; VICVectAddr
+        MOV     R1, #0
+        STR     R1, [R0]       ; end-of-interrupt
+        LDMFD   SP!, {R0-R3, LR}
+        SUBS    PC, LR, #4     ; return from IRQ
+
+        LTORG
+        END

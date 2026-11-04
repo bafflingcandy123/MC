@@ -1,0 +1,35 @@
+; LPC2148 - LAB QUESTION 19: Even_or_odd_repeat
+; Vector table is at flash address 0, with LPC2148 checksum at 0x14.
+; No vendor startup.s should be included in the same Keil target.
+        AREA    RESET, CODE, READONLY
+        ARM
+        ENTRY
+Vectors
+        B       Reset_Entry
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        DCD     0x99FFFFE2
+        B       IRQ_Entry
+        B       Default_Hang
+Reset_Entry
+        B       Main
+IRQ_Entry
+        B       Default_Hang
+Default_Hang
+        B       Default_Hang
+Main
+        ; Change 37 to test another number.
+        ; RAM[0]=number, RAM[4]=result (0=even, 1=odd).
+        LDR     R0, =0x40000000
+        MOV     R1, #37
+        STR     R1, [R0]
+        LDR     R2, [R0]
+        AND     R3, R2, #1
+        STR     R3, [R0, #4]
+Stop
+        B       Stop
+
+        LTORG
+        END

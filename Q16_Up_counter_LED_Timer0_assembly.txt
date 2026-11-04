@@ -1,0 +1,86 @@
+; LPC2148 - LAB QUESTION 16: Up_counter_LED_Timer0_assembly
+; Vector table is at flash address 0, with LPC2148 checksum at 0x14.
+; No vendor startup.s should be included in the same Keil target.
+        AREA    RESET, CODE, READONLY
+        ARM
+        ENTRY
+Vectors
+        B       Reset_Entry
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        DCD     0x99FFFFE2
+        B       IRQ_Entry
+        B       Default_Hang
+Reset_Entry
+        B       Main
+IRQ_Entry
+        B       Default_Hang
+Default_Hang
+        B       Default_Hang
+Main
+        ; Select GPIO for P0.16..P0.23 while preserving upper PINSEL1.
+        LDR     R0, =0xE002C004    ; PINSEL1
+        LDR     R1, [R0]
+        LDR     R2, =0xFFFF0000
+        AND     R1, R1, R2
+        STR     R1, [R0]
+        LDR     R0, =0xE0028004    ; IO0SET
+        LDR     R1, =0x00FF0000
+        STR     R1, [R0]           ; LEDs OFF before output enable
+        LDR     R0, =0xE0028008    ; IO0DIR
+        LDR     R2, [R0]
+        ORR     R2, R2, R1
+        STR     R2, [R0]
+        ; Binary up-count on active-low LEDs P0.16..P0.23.
+        ; Original lab Q16 requests C; this is assembly as requested.
+        BL      Init_Timer1s
+        MOV     R4, #0
+Count_Loop
+        LDR     R0, =0xE0028004
+        LDR     R1, =0x00FF0000
+        STR     R1, [R0]       ; all LEDs off
+        MOV     R2, R4, LSL #16
+        LDR     R0, =0xE002800C
+        STR     R2, [R0]       ; active-low LEDs show count
+        BL      Wait_1s
+        ADD     R4, R4, #1
+        AND     R4, R4, #255
+        B       Count_Loop
+Init_Timer1s
+        LDR     R0, =0xE01FC100    ; VPBDIV
+        MOV     R1, #1            ; PCLK = 12 MHz (assumes 12 MHz crystal)
+        STR     R1, [R0]
+        LDR     R0, =0xE0004004    ; T0TCR
+        MOV     R1, #2
+        STR     R1, [R0]           ; timer reset
+        MOV     R1, #0
+        STR     R1, [R0]
+        LDR     R0, =0xE000400C    ; T0PR
+        LDR     R1, =11999        ; 12000 PCLK ticks / 1 ms
+        STR     R1, [R0]
+        LDR     R0, =0xE0004018    ; T0MR0
+        LDR     R1, =1000         ; 1000 ms = 1 second
+        STR     R1, [R0]
+        LDR     R0, =0xE0004014    ; T0MCR
+        MOV     R1, #3            ; interrupt flag + reset on match
+        STR     R1, [R0]
+        LDR     R0, =0xE0004000    ; T0IR
+        MOV     R1, #1
+        STR     R1, [R0]           ; clear stale match flag
+        LDR     R0, =0xE0004004    ; T0TCR
+        STR     R1, [R0]           ; enable timer
+        BX      LR
+Wait_1s
+        LDR     R0, =0xE0004000    ; T0IR
+Wait_1s_loop
+        LDR     R1, [R0]
+        TST     R1, #1
+        BEQ     Wait_1s_loop
+        MOV     R1, #1
+        STR     R1, [R0]           ; acknowledge MR0 event
+        BX      LR
+
+        LTORG
+        END

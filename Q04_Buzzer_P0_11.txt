@@ -1,0 +1,52 @@
+; LPC2148 - LAB QUESTION 04: Buzzer_P0_11
+; Vector table is at flash address 0, with LPC2148 checksum at 0x14.
+; No vendor startup.s should be included in the same Keil target.
+        AREA    RESET, CODE, READONLY
+        ARM
+        ENTRY
+Vectors
+        B       Reset_Entry
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        DCD     0x99FFFFE2
+        B       IRQ_Entry
+        B       Default_Hang
+Reset_Entry
+        B       Main
+IRQ_Entry
+        B       Default_Hang
+Default_Hang
+        B       Default_Hang
+Main
+        ; P0.11 drives transistor/module IN (active HIGH assumed).
+        LDR     R0, =0xE002C000    ; PINSEL0
+        LDR     R1, [R0]
+        LDR     R2, =0x00C00000    ; clear P0.11 select [23:22]
+        BIC     R1, R1, R2
+        STR     R1, [R0]
+        LDR     R4, =0x00000800   ; P0.11
+        LDR     R0, =0xE002800C    ; IO0CLR
+        STR     R4, [R0]          ; off before DIR
+        LDR     R0, =0xE0028008    ; IO0DIR
+        LDR     R1, [R0]
+        ORR     R1, R1, R4
+        STR     R1, [R0]
+Buzzer_Loop
+        LDR     R0, =0xE0028004    ; IO0SET
+        STR     R4, [R0]          ; ON
+        BL      Delay
+        LDR     R0, =0xE002800C    ; IO0CLR
+        STR     R4, [R0]          ; OFF
+        BL      Delay
+        B       Buzzer_Loop
+Delay
+        LDR     R9, =300000      ; software delay, speed depends on clock
+Delay_Loop
+        SUBS    R9, R9, #1
+        BNE     Delay_Loop
+        BX      LR
+
+        LTORG
+        END

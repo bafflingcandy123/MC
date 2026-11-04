@@ -1,0 +1,41 @@
+; LPC2148 - LAB QUESTION 17: Shift_rotate_memory_repeat
+; Vector table is at flash address 0, with LPC2148 checksum at 0x14.
+; No vendor startup.s should be included in the same Keil target.
+        AREA    RESET, CODE, READONLY
+        ARM
+        ENTRY
+Vectors
+        B       Reset_Entry
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        DCD     0x99FFFFE2
+        B       IRQ_Entry
+        B       Default_Hang
+Reset_Entry
+        B       Main
+IRQ_Entry
+        B       Default_Hang
+Default_Hang
+        B       Default_Hang
+Main
+        ; RAM[0] input = 0x96
+        ; RAM[4] LSL 2, [8] LSR 2, [12] ROR 4, [16] ASR 2.
+        LDR     R0, =0x40000000
+        MOV     R1, #0x96
+        STR     R1, [R0]
+        LDR     R2, [R0]
+        MOV     R3, R2, LSL #2
+        STR     R3, [R0, #4]
+        MOV     R3, R2, LSR #2
+        STR     R3, [R0, #8]
+        MOV     R3, R2, ROR #4
+        STR     R3, [R0, #12]
+        MOV     R3, R2, ASR #2
+        STR     R3, [R0, #16]
+Stop
+        B       Stop
+
+        LTORG
+        END

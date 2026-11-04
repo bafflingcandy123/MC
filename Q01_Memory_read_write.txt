@@ -1,0 +1,33 @@
+; LPC2148 - LAB QUESTION 01: Memory_read_write
+; Vector table is at flash address 0, with LPC2148 checksum at 0x14.
+; No vendor startup.s should be included in the same Keil target.
+        AREA    RESET, CODE, READONLY
+        ARM
+        ENTRY
+Vectors
+        B       Reset_Entry
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        DCD     0x99FFFFE2
+        B       IRQ_Entry
+        B       Default_Hang
+Reset_Entry
+        B       Main
+IRQ_Entry
+        B       Default_Hang
+Default_Hang
+        B       Default_Hang
+Main
+        ; 0x40000000 = source, 0x40000004 = destination.
+        LDR     R0, =0x40000000
+        MOV     R1, #0x5A
+        STR     R1, [R0]
+        LDR     R2, [R0]
+        STR     R2, [R0, #4]
+Stop
+        B       Stop
+
+        LTORG
+        END

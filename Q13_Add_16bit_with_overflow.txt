@@ -1,0 +1,42 @@
+; LPC2148 - LAB QUESTION 13: Add_16bit_with_overflow
+; Vector table is at flash address 0, with LPC2148 checksum at 0x14.
+; No vendor startup.s should be included in the same Keil target.
+        AREA    RESET, CODE, READONLY
+        ARM
+        ENTRY
+Vectors
+        B       Reset_Entry
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        DCD     0x99FFFFE2
+        B       IRQ_Entry
+        B       Default_Hang
+Reset_Entry
+        B       Main
+IRQ_Entry
+        B       Default_Hang
+Default_Hang
+        B       Default_Hang
+Main
+        ; 0xFFFF + 0x0002 = 0x00010001.
+        ; RAM[8] full 32-bit sum, [12] low 16 bits,
+        ; RAM[16] 16-bit carry-out (1).
+        LDR     R0, =0x40000000
+        LDR     R1, =0xFFFF
+        MOV     R2, #2
+        STR     R1, [R0]
+        STR     R2, [R0, #4]
+        ADD     R3, R1, R2
+        STR     R3, [R0, #8]
+        LDR     R4, =0xFFFF
+        AND     R5, R3, R4
+        STR     R5, [R0, #12]
+        MOV     R5, R3, LSR #16
+        STR     R5, [R0, #16]
+Stop
+        B       Stop
+
+        LTORG
+        END

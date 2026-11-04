@@ -1,0 +1,38 @@
+; LPC2148 - LAB QUESTION 07: Add_16bit_numbers
+; Vector table is at flash address 0, with LPC2148 checksum at 0x14.
+; No vendor startup.s should be included in the same Keil target.
+        AREA    RESET, CODE, READONLY
+        ARM
+        ENTRY
+Vectors
+        B       Reset_Entry
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        DCD     0x99FFFFE2
+        B       IRQ_Entry
+        B       Default_Hang
+Reset_Entry
+        B       Main
+IRQ_Entry
+        B       Default_Hang
+Default_Hang
+        B       Default_Hang
+Main
+        ; 0x1234 + 0x5678 = 0x68AC
+        ; RAM[0], [4] operands; RAM[8] 32-bit sum.
+        LDR     R0, =0x40000000
+        LDR     R1, =0x1234
+        LDR     R2, =0x5678
+        STR     R1, [R0]
+        STR     R2, [R0, #4]
+        LDR     R3, [R0]
+        LDR     R4, [R0, #4]
+        ADD     R5, R3, R4
+        STR     R5, [R0, #8]
+Stop
+        B       Stop
+
+        LTORG
+        END

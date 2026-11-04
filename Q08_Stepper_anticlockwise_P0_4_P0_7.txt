@@ -1,0 +1,61 @@
+; LPC2148 - LAB QUESTION 08: Stepper_anticlockwise_P0_4_P0_7
+; Vector table is at flash address 0, with LPC2148 checksum at 0x14.
+; No vendor startup.s should be included in the same Keil target.
+        AREA    RESET, CODE, READONLY
+        ARM
+        ENTRY
+Vectors
+        B       Reset_Entry
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        DCD     0x99FFFFE2
+        B       IRQ_Entry
+        B       Default_Hang
+Reset_Entry
+        B       Main
+IRQ_Entry
+        B       Default_Hang
+Default_Hang
+        B       Default_Hang
+Main
+        ; A=P0.4, B=P0.5, C=P0.6, D=P0.7 via ULN2003.
+        ; Reverse the four patterns if wiring gives clockwise motion.
+        LDR     R0, =0xE002C000
+        LDR     R1, [R0]
+        LDR     R2, =0x0000FF00  ; P0.4..7 mux bits [15:8]
+        BIC     R1, R1, R2
+        STR     R1, [R0]
+        LDR     R5, =0x000000F0
+        LDR     R0, =0xE002800C
+        STR     R5, [R0]         ; all coils off
+        LDR     R0, =0xE0028008
+        LDR     R1, [R0]
+        ORR     R1, R1, R5
+        STR     R1, [R0]
+        MOV     R4, #0
+Step_Loop
+        LDR     R6, =Step_Table
+        LDRB    R7, [R6, R4]
+        LDR     R0, =0xE002800C
+        STR     R5, [R0]
+        LDR     R0, =0xE0028004
+        STR     R7, [R0]
+        BL      Delay
+        ADD     R4, R4, #1
+        CMP     R4, #4
+        MOVEQ   R4, #0
+        B       Step_Loop
+Delay
+        LDR     R9, =300000      ; software delay, speed depends on clock
+Delay_Loop
+        SUBS    R9, R9, #1
+        BNE     Delay_Loop
+        BX      LR
+        ALIGN
+Step_Table
+        DCB     0x90, 0xC0, 0x60, 0x30
+
+        LTORG
+        END

@@ -1,0 +1,40 @@
+; LPC2148 - LAB QUESTION 09: Arithmetic_add_sub_complement
+; Vector table is at flash address 0, with LPC2148 checksum at 0x14.
+; No vendor startup.s should be included in the same Keil target.
+        AREA    RESET, CODE, READONLY
+        ARM
+        ENTRY
+Vectors
+        B       Reset_Entry
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        B       Default_Hang
+        DCD     0x99FFFFE2
+        B       IRQ_Entry
+        B       Default_Hang
+Reset_Entry
+        B       Main
+IRQ_Entry
+        B       Default_Hang
+Default_Hang
+        B       Default_Hang
+Main
+        ; A=25, B=12, result offsets [8], [12], [16].
+        ; Complement is 32-bit bitwise NOT of A.
+        LDR     R0, =0x40000000
+        MOV     R1, #25
+        MOV     R2, #12
+        STR     R1, [R0]
+        STR     R2, [R0, #4]
+        ADD     R3, R1, R2
+        STR     R3, [R0, #8]
+        SUB     R4, R1, R2
+        STR     R4, [R0, #12]
+        MVN     R5, R1
+        STR     R5, [R0, #16]
+Stop
+        B       Stop
+
+        LTORG
+        END
